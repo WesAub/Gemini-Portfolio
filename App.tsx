@@ -1,0 +1,138 @@
+import React, { useState, useEffect } from 'react';
+import { Navbar } from './components/Navbar';
+import { Hero } from './components/Hero';
+import { ProjectGrid } from './components/ProjectGrid';
+import { AdminPanel } from './components/AdminPanel';
+import { Login } from './components/Login';
+import { ProjectModal } from './components/ProjectModal';
+import { ResumeView } from './components/ResumeView';
+import { Project, PortfolioTab } from './types';
+import { ENGINEER_RESUME, SERVICE_RESUME } from './constants';
+import { fetchProjects } from './services/projectService';
+import { getSession, User } from './services/authService';
+import { supabase } from './services/supabaseClient';
+import { Download, ArrowUpRight } from 'lucide-react';
+
+const App: React.FC = () => {
+  const [view, setView] = useState<'home' | 'admin'>('home');
+  const [activeTab, setActiveTab] = useState<PortfolioTab>('creative');
+  
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+
+  // Initial Data Fetch
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      const data = await fetchProjects();
+      setProjects(data);
+      setLoading(false);
+    };
+    loadData();
+  }, [view]);
+
+  // Auth Check
+  useEffect(() => {
+    // Check local/mock session or Supabase session
+    getSession().then(setUser);
+
+    // Listen for Supabase auth changes
+    const { data: authListener } = supabase?.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    }) || { data: null };
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen font-sans selection:bg-swiss-red selection:text-white bg-off-white text-ink">
+      <Navbar 
+        currentView={view} 
+        setView={setView} 
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
+      
+      <main className="px-6 md:px-12 lg:px-24 pb-24">
+        {view === 'home' ? (
+          <>
+            {/* Show Hero only on Creative Tab for landing impact */}
+            {activeTab === 'creative' && <Hero />}
+            
+            <div id="content" className={`${activeTab === 'creative' ? 'mt-24 md:mt-48' : 'mt-12 md:mt-24'}`}>
+              
+              {/* CREATIVE VIEW */}
+              {activeTab === 'creative' && (
+                <>
+                  <div className="flex items-baseline justify-between mb-12 border-b border-gray-300 pb-4">
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500">Selected Works</h2>
+                    <span className="text-xs font-mono text-gray-400">01 — {projects.length.toString().padStart(2, '0')}</span>
+                  </div>
+                  
+                  {loading ? (
+                    <div className="animate-pulse flex space-x-4 h-64 bg-gray-200 rounded"></div>
+                  ) : (
+                    <ProjectGrid 
+                      projects={projects} 
+                      onProjectClick={setSelectedProject} 
+                    />
+                  )}
+                </>
+              )}
+
+              {/* ENGINEER VIEW */}
+              {activeTab === 'engineer' && (
+                <ResumeView data={ENGINEER_RESUME} />
+              )}
+
+              {/* SERVICE VIEW */}
+              {activeTab === 'service inds.' && (
+                <ResumeView data={SERVICE_RESUME} />
+              )}
+            </div>
+          </>
+        ) : (
+          // Admin Route Protection
+          user ? (
+            <AdminPanel user={user} onSignOut={() => setUser(null)} />
+          ) : (
+            <Login onLoginSuccess={setUser} />
+          )
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="px-6 md:px-12 lg:px-24 py-12 border-t border-gray-200 mt-24">
+        <div className="flex justify-between items-end">
+          <div>
+            <h3 className="text-lg font-bold">CONTACT</h3>
+            <p className="text-xs text-gray-500 mb-4">
+                 St. John's, NL<br/>
+                 +1-709-689-7790
+            </p>
+            <a href="mailto:wnaubynn@mun.ca" className="group inline-flex items-center gap-1 text-sm font-bold underline hover:text-swiss-red transition-colors">
+                wnaubynn@mun.ca <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </a>
+          </div>
+          <p className="hidden md:block text-xs text-gray-400 font-mono">
+            © {new Date().getFullYear()}WESLEY AUBYNN<br/>
+            ZÜRICH / DIGITAL
+          </p>
+        </div>
+      </footer>
+
+      {selectedProject && (
+        <ProjectModal 
+          project={selectedProject} 
+          onClose={() => setSelectedProject(null)} 
+        />
+      )}
+    </div>
+  );
+};
+
+export default App;
