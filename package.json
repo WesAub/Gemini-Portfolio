@@ -9,11 +9,13 @@
     "build": "vite build",
     "server": "node server.js",
     "start": "node server.js",
-    "deploy": "npm install && npm run build && sudo node server.js"
+    "prod:start": "pm2 start server.js --name portfolio-app",
+    "prod:stop": "pm2 stop portfolio-app",
+    "prod:logs": "pm2 logs portfolio-app",
+    "deploy": "npm install && npm run build && npm run prod:start"
   },
   "dependencies": {
     "@google/genai": "^1.32.0",
-    "@supabase/supabase-js": "^2.48.1",
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.556.0",
     "react": "^19.0.0",

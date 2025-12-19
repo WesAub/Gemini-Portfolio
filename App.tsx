@@ -11,7 +11,7 @@ import { Project, PortfolioTab } from './types';
 import { ENGINEER_RESUME, SERVICE_RESUME } from './constants';
 import { fetchProjects } from './services/projectService';
 import { getSession, User } from './services/authService';
-import { Download, ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'home' | 'admin'>('home');
@@ -26,9 +26,14 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const data = await fetchProjects();
-      setProjects(data);
-      setLoading(false);
+      try {
+        const data = await fetchProjects();
+        setProjects(data || []);
+      } catch (err) {
+        console.error("Failed to load projects:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     loadData();
   }, [view]);
@@ -42,6 +47,19 @@ const App: React.FC = () => {
     setUser(null);
     setView('home');
   };
+
+  // If we are globally loading and have no data yet, show a clean spinner
+  // This prevents the "blank white page" feeling
+  if (loading && projects.length === 0 && view === 'home') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-off-white">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-swiss-red mx-auto mb-4" />
+          <p className="text-xs font-mono uppercase tracking-widest text-gray-400">Loading Studio...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen font-sans selection:bg-swiss-red selection:text-white bg-off-white text-ink">
@@ -66,17 +84,10 @@ const App: React.FC = () => {
                     <span className="text-xs font-mono text-gray-400">01 — {projects.length.toString().padStart(2, '0')}</span>
                   </div>
                   
-                  {loading ? (
-                    <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 gap-12">
-                      <div className="h-96 bg-gray-200"></div>
-                      <div className="h-96 bg-gray-200 mt-24"></div>
-                    </div>
-                  ) : (
-                    <ProjectGrid 
-                      projects={projects} 
-                      onProjectClick={setSelectedProject} 
-                    />
-                  )}
+                  <ProjectGrid 
+                    projects={projects} 
+                    onProjectClick={setSelectedProject} 
+                  />
                 </>
               )}
 

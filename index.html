@@ -5,15 +5,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Wesley Aubynn | Portfolio</title>
+    
+    <!-- Polyfill for crypto.randomUUID (Fixes crash on HTTP/Insecure IP access) -->
+    <script>
+      if (!window.crypto.randomUUID) {
+        window.crypto.randomUUID = function() {
+          return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+          );
+        };
+      }
+      window.process = { env: { NODE_ENV: 'production' } };
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;900&display=swap" rel="stylesheet">
+    
     <script>
       tailwind.config = {
         theme: {
           extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-            },
+            fontFamily: { sans: ['Inter', 'sans-serif'] },
             colors: {
               'swiss-red': '#FF3B30',
               'off-white': '#F5F5F7',
@@ -23,26 +35,21 @@
         }
       }
     </script>
+
     <style>
-      body {
-        background-color: #F5F5F7;
-        color: #111111;
-      }
-      ::-webkit-scrollbar {
-        width: 0px;
-        background: transparent;
-      }
+      body { background-color: #F5F5F7; color: #111111; margin: 0; }
+      ::-webkit-scrollbar { width: 0px; background: transparent; }
     </style>
-  <script type="importmap">
+
+    <script type="importmap">
 {
   "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.32.0",
-    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.25",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.89.0",
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "@google/genai": "https://esm.sh/@google/genai@1.32.0",
+    "framer-motion": "https://esm.sh/framer-motion@12.23.25",
+    "lucide-react": "https://esm.sh/lucide-react@0.475.0",
     "vite": "https://esm.sh/vite@^7.3.0",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
     "express": "https://esm.sh/express@^5.2.1",
@@ -52,12 +59,16 @@
     "dotenv": "https://esm.sh/dotenv@^17.2.3",
     "path": "https://esm.sh/path@^0.12.7",
     "fs": "https://esm.sh/fs@^0.0.1-security",
-    "url": "https://esm.sh/url@^0.11.4"
+    "url": "https://esm.sh/url@^0.11.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
-</head>
+  </head>
   <body>
     <div id="root"></div>
+    <!-- Vite handles the transformation of this in development and build -->
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

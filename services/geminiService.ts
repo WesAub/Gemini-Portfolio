@@ -1,12 +1,21 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const apiKey = process.env.API_KEY;
+// Safe access for browser environments
+const getApiKey = () => {
+  try {
+    return (typeof process !== 'undefined' && process.env?.API_KEY) || "";
+  } catch {
+    return "";
+  }
+};
 
 export const generateProjectDescription = async (title: string, category: string): Promise<string> => {
+  const apiKey = getApiKey();
+  
   if (!apiKey) {
-    console.warn("Gemini API Key is missing.");
-    return "Gemini API key missing. Please provide a description manually.";
+    console.warn("Gemini API Key is missing in browser context.");
+    return "API key not found. Please add a description manually or check server configuration.";
   }
 
   try {
@@ -22,6 +31,6 @@ export const generateProjectDescription = async (title: string, category: string
     return response.text || "";
   } catch (error) {
     console.error("Gemini Error:", error);
-    return "Error generating description.";
+    return "Error generating description with AI.";
   }
 };
