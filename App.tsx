@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
@@ -10,7 +11,6 @@ import { Project, PortfolioTab } from './types';
 import { ENGINEER_RESUME, SERVICE_RESUME } from './constants';
 import { fetchProjects } from './services/projectService';
 import { getSession, User } from './services/authService';
-import { supabase } from './services/supabaseClient';
 import { Download, ArrowUpRight } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -35,18 +35,13 @@ const App: React.FC = () => {
 
   // Auth Check
   useEffect(() => {
-    // Check local/mock session or Supabase session
     getSession().then(setUser);
-
-    // Listen for Supabase auth changes
-    const { data: authListener } = supabase?.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null);
-    }) || { data: null };
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
   }, []);
+
+  const handleSignOut = () => {
+    setUser(null);
+    setView('home');
+  };
 
   return (
     <div className="min-h-screen font-sans selection:bg-swiss-red selection:text-white bg-off-white text-ink">
@@ -60,12 +55,10 @@ const App: React.FC = () => {
       <main className="px-6 md:px-12 lg:px-24 pb-24">
         {view === 'home' ? (
           <>
-            {/* Show Hero only on Creative Tab for landing impact */}
             {activeTab === 'creative' && <Hero />}
             
             <div id="content" className={`${activeTab === 'creative' ? 'mt-24 md:mt-48' : 'mt-12 md:mt-24'}`}>
               
-              {/* CREATIVE VIEW */}
               {activeTab === 'creative' && (
                 <>
                   <div className="flex items-baseline justify-between mb-12 border-b border-gray-300 pb-4">
@@ -74,7 +67,10 @@ const App: React.FC = () => {
                   </div>
                   
                   {loading ? (
-                    <div className="animate-pulse flex space-x-4 h-64 bg-gray-200 rounded"></div>
+                    <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 gap-12">
+                      <div className="h-96 bg-gray-200"></div>
+                      <div className="h-96 bg-gray-200 mt-24"></div>
+                    </div>
                   ) : (
                     <ProjectGrid 
                       projects={projects} 
@@ -84,28 +80,24 @@ const App: React.FC = () => {
                 </>
               )}
 
-              {/* ENGINEER VIEW */}
               {activeTab === 'engineer' && (
                 <ResumeView data={ENGINEER_RESUME} />
               )}
 
-              {/* SERVICE VIEW */}
               {activeTab === 'service inds.' && (
                 <ResumeView data={SERVICE_RESUME} />
               )}
             </div>
           </>
         ) : (
-          // Admin Route Protection
           user ? (
-            <AdminPanel user={user} onSignOut={() => setUser(null)} />
+            <AdminPanel user={user} onSignOut={handleSignOut} />
           ) : (
             <Login onLoginSuccess={setUser} />
           )
         )}
       </main>
 
-      {/* Footer */}
       <footer className="px-6 md:px-12 lg:px-24 py-12 border-t border-gray-200 mt-24">
         <div className="flex justify-between items-end">
           <div>
@@ -119,8 +111,8 @@ const App: React.FC = () => {
             </a>
           </div>
           <p className="hidden md:block text-xs text-gray-400 font-mono">
-            © {new Date().getFullYear()}WESLEY AUBYNN<br/>
-            ZÜRICH / DIGITAL
+            © {new Date().getFullYear()} WESLEY AUBYNN<br/>
+            ST. JOHN'S / NEWFOUNDLAND
           </p>
         </div>
       </footer>
