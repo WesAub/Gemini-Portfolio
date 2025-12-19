@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 80; // Default to port 80 for production
+const port = process.env.PORT || 80;
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, 'uploads');
@@ -22,19 +22,23 @@ if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir);
 }
 
+// Log configuration status (safely)
+console.log('--- Server Configuration ---');
+console.log('Target DB Host:', process.env.DB_HOST || 'NOT SET (defaulting to 127.0.0.1)');
+console.log('Target DB User:', process.env.DB_USER || 'NOT SET');
+console.log('Port:', port);
+console.log('---------------------------');
+
 // AWS RDS Connection Configuration
 const pool = new pg.Pool({
   user: process.env.DB_USER,
-  host: process.env.DB_HOST,
+  host: process.env.DB_HOST || '127.0.0.1',
   database: process.env.DB_NAME || 'postgres',
   password: process.env.DB_PASSWORD,
   port: 5432,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: process.env.DB_HOST ? { rejectUnauthorized: false } : false
 });
 
-// Multer setup for local file storage on AWS
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -49,11 +53,9 @@ const upload = multer({ storage });
 
 app.use(cors());
 app.use(express.json());
-
-// 1. Serve Uploaded Images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// 2. API Routes
+// API Routes
 app.get('/api/projects', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM projects ORDER BY created_at DESC');
@@ -89,19 +91,25 @@ app.post('/api/auth/login', (req, res) => {
   }
 });
 
-// 3. Serve Frontend (Production)
-// This serves the 'dist' folder created by 'npm run build'
+// Serve Frontend
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Fallback for React Router (Single Page Application)
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    const indexPath = path.join(__dirname, 'dist', 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send('Frontend not built. Run npm run build.');
+    }
   }
 });
 
-// Initialize Database Table
 const initDb = async () => {
+  if (!process.env.DB_HOST) {
+    console.warn('WARNING: DB_HOST not provided. Skipping DB initialization.');
+    return;
+  }
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS projects (
@@ -114,15 +122,14 @@ const initDb = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('RDS Connection Successful: Table Ready');
+    console.log('RDS Connection Successful');
   } catch (err) {
-    console.error('RDS Connection Failed:', err);
+    console.error('RDS Connection Failed:', err.message);
   }
 };
+
 initDb();
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-  console.log(`Frontend served from /dist`);
-  console.log(`API endpoints available at /api`);
 });
