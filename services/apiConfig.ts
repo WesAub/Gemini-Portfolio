@@ -1,7 +1,6 @@
 
-// On your AWS server, the backend runs on port 5000
-// We use a relative path if they are on the same domain, 
-// or the public IP if accessing from elsewhere.
-export const API_BASE_URL = 'http://localhost:5000';
+// We use relative paths because the Vite proxy in vite.config.ts 
+// handles the routing to the backend on port 5000.
+export const API_BASE_URL = '';
 
-export const isBackendConfigured = true; // Always true now that we have server.js
+export const isBackendConfigured = true;

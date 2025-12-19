@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
 import { Upload, Sparkles, Loader2, LogOut } from 'lucide-react';
-import { createProject } from '../services/projectService';
-import { generateProjectDescription } from '../services/geminiService';
-import { isBackendConfigured } from '../services/apiConfig';
-import { signOut, User } from '../services/authService';
+import { createProject } from './services/projectService';
+import { generateProjectDescription } from './services/geminiService';
+import { isBackendConfigured } from './services/apiConfig';
+import { signOut, User } from './services/authService';
 
 interface AdminPanelProps {
   user: User;
@@ -69,7 +69,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ user, onSignOut }) => {
     <div className="max-w-xl mx-auto mt-20 p-8 bg-white border border-gray-200 shadow-xl relative">
       <div className="flex justify-between items-start mb-8 border-b border-black pb-4">
         <div>
-          <h2 className="text-3xl font-black tracking-tight uppercase">RDS Studio</h2>
+          <h2 className="text-3xl font-black tracking-tight uppercase text-ink">RDS Studio</h2>
           <p className="text-xs font-mono text-gray-500 mt-1">
             USER: <span className="text-swiss-red">{user.email}</span>
             {!isBackendConfigured && " (MOCK MODE - NO AWS BACKEND DETECTED)"}
@@ -160,7 +160,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ user, onSignOut }) => {
             />
             <div className="flex flex-col items-center justify-center text-gray-500">
               <Upload size={24} className="mb-2" />
-              <span className="text-xs font-mono">{file ? file.name : "Upload to RDS/S3 Storage"}</span>
+              <span className="text-xs font-mono">{file ? file.name : "Upload to RDS Storage"}</span>
             </div>
           </div>
         </div>
