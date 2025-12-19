@@ -8,10 +8,11 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Explicitly load .env from the project root using an absolute path
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const app = express();
 const port = process.env.PORT || 80;
@@ -22,20 +23,26 @@ if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir);
 }
 
-// Log configuration status (safely)
-console.log('--- Server Configuration ---');
-console.log('Target DB Host:', process.env.DB_HOST || 'NOT SET (defaulting to 127.0.0.1)');
-console.log('Target DB User:', process.env.DB_USER || 'NOT SET');
-console.log('Port:', port);
+// Log configuration status
+console.log('--- RDS Connection Debug ---');
+console.log('DB_HOST:', process.env.DB_HOST || 'MISSING');
+console.log('DB_USER:', process.env.DB_USER || 'MISSING');
+console.log('DB_NAME:', process.env.DB_NAME || 'postgres');
 console.log('---------------------------');
+
+if (!process.env.DB_USER || !process.env.DB_HOST || !process.env.DB_PASSWORD) {
+  console.error('FATAL ERROR: Database credentials (DB_USER, DB_HOST, or DB_PASSWORD) are missing in .env file.');
+  console.error('The server will start, but database features will fail.');
+}
 
 // AWS RDS Connection Configuration
 const pool = new pg.Pool({
   user: process.env.DB_USER,
-  host: process.env.DB_HOST || '127.0.0.1',
+  host: process.env.DB_HOST,
   database: process.env.DB_NAME || 'postgres',
   password: process.env.DB_PASSWORD,
   port: 5432,
+  // RDS requires SSL for most configurations
   ssl: process.env.DB_HOST ? { rejectUnauthorized: false } : false
 });
 
@@ -64,7 +71,8 @@ app.get('/api/projects', async (req, res) => {
       imageUrl: p.image_url
     })));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error fetching projects:', err.message);
+    res.status(500).json({ error: 'Database error' });
   }
 });
 
@@ -78,7 +86,8 @@ app.post('/api/projects', upload.single('image'), async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error creating project:', err.message);
+    res.status(500).json({ error: 'Database error' });
   }
 });
 
@@ -91,7 +100,7 @@ app.post('/api/auth/login', (req, res) => {
   }
 });
 
-// Serve Frontend
+// Serve Frontend from the 'dist' folder
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get('*', (req, res) => {
@@ -100,16 +109,14 @@ app.get('*', (req, res) => {
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
     } else {
-      res.status(404).send('Frontend not built. Run npm run build.');
+      res.status(404).send('Frontend build not found. Please run "npm run build".');
     }
   }
 });
 
 const initDb = async () => {
-  if (!process.env.DB_HOST) {
-    console.warn('WARNING: DB_HOST not provided. Skipping DB initialization.');
-    return;
-  }
+  if (!process.env.DB_HOST || !process.env.DB_USER) return;
+  
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS projects (
@@ -122,14 +129,14 @@ const initDb = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('RDS Connection Successful');
+    console.log('SUCCESS: Connected to RDS and verified table.');
   } catch (err) {
-    console.error('RDS Connection Failed:', err.message);
+    console.error('ERROR: RDS Connection failed during init:', err.message);
   }
 };
 
 initDb();
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`Server is running at http://localhost:${port}`);
 });
